@@ -18,7 +18,7 @@ function demo({ props, atom, onMount, onEffect }: CreateFnParam<DemoProps>) {
   const state = atom({
     // for useState
     loading: true,
-    data: null,
+    data: null as any,
     count: 0,
 
     // for useMemo
