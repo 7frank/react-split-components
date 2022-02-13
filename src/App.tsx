@@ -1,7 +1,6 @@
 import * as React from 'react';
-import create from './create';
+import { create, CreateFnParam } from './create';
 import { Demo } from './Demo';
-import { CreateFnParam } from './types';
 
 function app({ atom }: CreateFnParam) {
   const state = atom({

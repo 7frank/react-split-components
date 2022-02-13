@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { CreateParam, CreateReturn } from './types';
+export * from './types';
 
 const defaultGetter = (target, key) => target[key];
 const noop = () => {};
@@ -10,7 +10,7 @@ const defaultCallbacks = {
   onEffectMount: noop,
 };
 
-export default function create<P>(fn: CreateParam<P>): CreateReturn<P> {
+export function create<P>(fn: CreateParam<P>): CreateReturn<P> {
   return (props) => {
     const [, setState] = useState(false);
     const callbacks = useRef(defaultCallbacks);

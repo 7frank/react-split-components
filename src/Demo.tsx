@@ -1,6 +1,5 @@
 import * as React from 'react';
-import create from './create';
-import { CreateFnParam } from './types';
+import { create, CreateFnParam } from './create';
 
 async function request() {
   return await { data: { something: '123' } };
