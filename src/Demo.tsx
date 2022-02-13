@@ -1,5 +1,6 @@
 import * as React from "react";
 import create from "./create";
+import { CreateFnParam } from "./types";
 
 
 async function request(){
@@ -16,7 +17,7 @@ type DemoProps = {
 const log= (...args:any)=> process.env.NODE_ENV=="development" && console.log(...args)
 
 
-function demo({ props, atom, onMount, onEffect }:{props:DemoProps}) {
+function demo({ props, atom, onMount, onEffect }:CreateFnParam<DemoProps>) {
     const state = atom({
       // for useState
       loading: true,
@@ -76,10 +77,10 @@ function demo({ props, atom, onMount, onEffect }:{props:DemoProps}) {
         <>
           <h1>{loading ? 'loading...' : JSON.stringify(data)}</h1>
           <button onClick={onReload}>Reload data</button>
-          <h1>{theme}</h1>
-          <h1 ref={countRef}>{count}</h1>
-          <h1>{power}</h1>
-          <h1>{text}</h1>
+          <h2>{theme}</h2>
+          <h3 ref={countRef}>{count}</h3>
+          <h4>{power}</h4>
+          <h5>{text}</h5>
           <button onClick={onClick}>Click me</button>
         </>
       );

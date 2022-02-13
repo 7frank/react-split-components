@@ -1,22 +1,37 @@
 import * as React from "react";
-import {act} from 'react-dom/test-utils';
-import * as ReactDOM from "react-dom";
+import {
+    render,
+    cleanup,
+    act,
+    waitFor,
+    screen
+  } from '@testing-library/react'
+
+
 
 import {Demo} from "../src/Demo"
 
 
 
 
-describe('create', function () {
+describe('create',  function () {
 
 
-   it('should display pass in number', function () {
-       let container = document.createElement('div');
-       document.body.appendChild(container);
-       act(() => {
-           ReactDOM.render(<Demo theme="theme1" setTheme={console.log}/>, container);
-       })
-       const header = container.querySelector('h1');
-       expect(header.textContent).toBe("loading...")
+   it('should display pass in number', async function () {
+    
+    // arrange
+    render(<Demo theme="theme1" setTheme={console.log}/>)
+    
+    //act 
+    // fireEvent.click(screen.getByText('Load Greeting'))
+    await waitFor(() => screen.findByText('theme1'))
+     
+
+    // assert
+    expect(screen.getAllByRole('button').at(1)).toHaveTextContent('Click me')
+      
+
+
+    
    });
 });

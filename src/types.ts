@@ -8,6 +8,7 @@ type AtomReturn<T> = {
   [K in keyof T]: T[K] extends (..._: any[]) => infer R ? R : T[K];
 };
 
+export 
 interface CreateFnParam<P> {
   props: P;
 
