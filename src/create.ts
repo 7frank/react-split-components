@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { CreateParam,CreateReturn } from './types';
 
 const defaultGetter = (target, key) => target[key];
 const noop = () => {};
@@ -9,7 +10,10 @@ const defaultCallbacks = {
   onEffectMount: noop,
 };
 
-const create = (fn) => (props) => {
+
+
+export default function create<P>(fn: CreateParam<P>):CreateReturn<P>{
+  return (props)  => {
   const [, setState] = useState(false);
   const callbacks = useRef(defaultCallbacks);
 
@@ -115,7 +119,7 @@ const create = (fn) => (props) => {
       onEffectMount: () => {
         const unmount = typeof onMountCb === 'function' && onMountCb();
         return () => {
-          Object.values(effectMap).forEach(({ clear }) => {
+          Object.values(effectMap).forEach(({ clear }:any) => {
             if (typeof clear === 'function') clear();
           });
           effectMap = {};
@@ -142,6 +146,8 @@ const create = (fn) => (props) => {
   });
 
   return ins(props);
+}
 };
 
-export default create;
+
+

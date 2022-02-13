@@ -20,14 +20,14 @@ interface CreateFnParam<P> {
   onEffect<T>(val: T, fn: (val: T, prevVal: T) => CleanupFn): void;
 }
 
+export 
 interface CreateParam<P> {
   (param: CreateFnParam<P>): () => React.ReactElement;
 }
 
+export 
 interface CreateReturn<P> {
   (props: P): React.ReactElement;
 }
 
-declare function create<P>(fn: CreateParam<P>): CreateReturn<P>;
 
-export default create;

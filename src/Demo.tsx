@@ -7,7 +7,16 @@ async function request(){
     return await {data:{something:"123"}}
 }
 
-function demo({ props, atom, onMount, onEffect }) {
+type DemoProps = {
+    theme: string;
+    setTheme: Function;
+};
+
+
+const log= (...args:any)=> process.env.NODE_ENV=="development" && console.log(...args)
+
+
+function demo({ props, atom, onMount, onEffect }:{props:DemoProps}) {
     const state = atom({
       // for useState
       loading: true,
@@ -39,18 +48,18 @@ function demo({ props, atom, onMount, onEffect }) {
     // for useEffect
     onMount(() => {
       getData();
-      console.log('mount!');
+      log('mount!');
   
       return () => {
-        console.log('unmount!');
+        log('unmount!');
       };
     });
   
     onEffect(state.power, (val, prevVal) => {
-      console.log('enter state.power', val, prevVal);
+      log('enter state.power', val, prevVal);
   
       return () => {
-        console.log('clear state.power', val, prevVal);
+        log('clear state.power', val, prevVal);
       };
     });
   
