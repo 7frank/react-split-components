@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { CreateParam,CreateReturn } from './types';
+import { CreateParam, CreateReturn } from './types';
 
 const defaultGetter = (target, key) => target[key];
 const noop = () => {};
@@ -10,144 +10,139 @@ const defaultCallbacks = {
   onEffectMount: noop,
 };
 
+export default function create<P>(fn: CreateParam<P>): CreateReturn<P> {
+  return (props) => {
+    const [, setState] = useState(false);
+    const callbacks = useRef(defaultCallbacks);
 
+    useMemo(() => callbacks.current.onPropsUpdate(props), [props]);
+    callbacks.current.onDeriveUpdate();
+    useEffect(() => callbacks.current.onEffectUpdate());
+    useEffect(() => callbacks.current.onEffectMount(), []);
 
-export default function create<P>(fn: CreateParam<P>):CreateReturn<P>{
-  return (props)  => {
-  const [, setState] = useState(false);
-  const callbacks = useRef(defaultCallbacks);
+    const [ins] = useState(() => {
+      const stateTarget = {};
+      const deriveState = {};
+      const deriveMap = {};
 
-  useMemo(() => callbacks.current.onPropsUpdate(props), [props]);
-  callbacks.current.onDeriveUpdate();
-  useEffect(() => callbacks.current.onEffectUpdate());
-  useEffect(() => callbacks.current.onEffectMount(), []);
+      let propsProxy = { ...props };
+      let deriveUpdates = {};
+      let effectMap = {};
+      let effectUpdates = [];
 
-  const [ins] = useState(() => {
-    const stateTarget = {};
-    const deriveState = {};
-    const deriveMap = {};
+      let curUniqueId = null;
+      let curDerive = null;
 
-    let propsProxy = { ...props };
-    let deriveUpdates = {};
-    let effectMap = {};
-    let effectUpdates = [];
-
-    let curUniqueId = null;
-    let curDerive = null;
-
-    const createHandler = (type) => ({
-      get(target, key) {
-        curUniqueId = `${type}.${key}`;
-        if (curDerive) {
-          if (!deriveMap[curUniqueId]) deriveMap[curUniqueId] = {};
-          deriveMap[curUniqueId][curDerive.key] = curDerive.getter;
-        }
-        return target[key];
-      },
-      set(target, key, val) {
-        if (val !== target[key]) {
-          const uniqueId = `${type}.${key}`;
-          const deriveData = deriveMap[uniqueId];
-          const effectData = effectMap[uniqueId];
-
-          if (deriveData) Object.assign(deriveUpdates, deriveData);
-          if (effectData) {
-            effectData.params = [val, target[key]];
-            effectUpdates.push(uniqueId);
+      const createHandler = (type) => ({
+        get(target, key) {
+          curUniqueId = `${type}.${key}`;
+          if (curDerive) {
+            if (!deriveMap[curUniqueId]) deriveMap[curUniqueId] = {};
+            deriveMap[curUniqueId][curDerive.key] = curDerive.getter;
           }
-        }
-        target[key] = val;
-        if (type === 'state') setState((s) => !s);
-        return true;
-      },
-    });
+          return target[key];
+        },
+        set(target, key, val) {
+          if (val !== target[key]) {
+            const uniqueId = `${type}.${key}`;
+            const deriveData = deriveMap[uniqueId];
+            const effectData = effectMap[uniqueId];
 
-    const propsHandler = createHandler('props');
-    const stateHandler = createHandler('state');
-
-    propsProxy = new Proxy(propsProxy, propsHandler);
-
-    const atom = (initState) => {
-      Object.entries(initState).forEach(([key, val]) => {
-        if (typeof val === 'function') deriveState[key] = val;
-        stateTarget[key] = val;
+            if (deriveData) Object.assign(deriveUpdates, deriveData);
+            if (effectData) {
+              effectData.params = [val, target[key]];
+              effectUpdates.push(uniqueId);
+            }
+          }
+          target[key] = val;
+          if (type === 'state') setState((s) => !s);
+          return true;
+        },
       });
-      return new Proxy(stateTarget, stateHandler);
-    };
 
-    let onMountCb;
-    const onMount = (fn) => {
-      if (typeof fn === 'function') onMountCb = fn;
-    };
+      const propsHandler = createHandler('props');
+      const stateHandler = createHandler('state');
 
-    const onEffect = (val, fn) => {
-      if (typeof fn !== 'function') return;
-      if (effectMap[curUniqueId]) return;
-      effectMap[curUniqueId] = { params: [val], fn };
-      effectUpdates.push(curUniqueId);
-      curUniqueId = null;
-    };
+      propsProxy = new Proxy(propsProxy, propsHandler);
 
-    callbacks.current = {
-      onPropsUpdate: (nextProps) => {
-        Object.assign(propsProxy, nextProps);
-      },
-      onDeriveUpdate: () => {
-        const keys = Object.keys(deriveUpdates);
-        if (keys.length === 0) return;
-        keys.forEach((key) => {
-          const val = deriveState[key]();
+      const atom = (initState) => {
+        Object.entries(initState).forEach(([key, val]) => {
+          if (typeof val === 'function') deriveState[key] = val;
           stateTarget[key] = val;
+        });
+        return new Proxy(stateTarget, stateHandler);
+      };
 
-          const uniqueId = `state.${key}`;
-          const effectData = effectMap[uniqueId];
-          if (effectData) {
-            effectData.params = [val, effectData.params[0]];
-            effectUpdates.push(uniqueId);
-          }
-        });
-        deriveUpdates = {};
-      },
-      onEffectUpdate: () => {
-        effectUpdates.forEach((uniqueId) => {
-          const { clear, fn, params } = effectMap[uniqueId];
-          if (typeof clear === 'function') clear();
-          effectMap[uniqueId].clear = fn(...params);
-        });
-        effectUpdates = [];
-      },
-      onEffectMount: () => {
-        const unmount = typeof onMountCb === 'function' && onMountCb();
-        return () => {
-          Object.values(effectMap).forEach(({ clear }:any) => {
-            if (typeof clear === 'function') clear();
+      let onMountCb;
+      const onMount = (fn) => {
+        if (typeof fn === 'function') onMountCb = fn;
+      };
+
+      const onEffect = (val, fn) => {
+        if (typeof fn !== 'function') return;
+        if (effectMap[curUniqueId]) return;
+        effectMap[curUniqueId] = { params: [val], fn };
+        effectUpdates.push(curUniqueId);
+        curUniqueId = null;
+      };
+
+      callbacks.current = {
+        onPropsUpdate: (nextProps) => {
+          Object.assign(propsProxy, nextProps);
+        },
+        onDeriveUpdate: () => {
+          const keys = Object.keys(deriveUpdates);
+          if (keys.length === 0) return;
+          keys.forEach((key) => {
+            const val = deriveState[key]();
+            stateTarget[key] = val;
+
+            const uniqueId = `state.${key}`;
+            const effectData = effectMap[uniqueId];
+            if (effectData) {
+              effectData.params = [val, effectData.params[0]];
+              effectUpdates.push(uniqueId);
+            }
           });
-          effectMap = {};
-          if (typeof unmount === 'function') unmount();
-        };
-      },
-    };
+          deriveUpdates = {};
+        },
+        onEffectUpdate: () => {
+          effectUpdates.forEach((uniqueId) => {
+            const { clear, fn, params } = effectMap[uniqueId];
+            if (typeof clear === 'function') clear();
+            effectMap[uniqueId].clear = fn(...params);
+          });
+          effectUpdates = [];
+        },
+        onEffectMount: () => {
+          const unmount = typeof onMountCb === 'function' && onMountCb();
+          return () => {
+            Object.values(effectMap).forEach(({ clear }: any) => {
+              if (typeof clear === 'function') clear();
+            });
+            effectMap = {};
+            if (typeof unmount === 'function') unmount();
+          };
+        },
+      };
 
-    const res = fn({ props: propsProxy, atom, onMount, onEffect });
+      const res = fn({ props: propsProxy, atom, onMount, onEffect });
 
-    Object.entries(deriveState).forEach(([key, getter]) => {
-      curDerive = { key, getter };
-      const val = getter();
-      curDerive = null;
+      Object.entries(deriveState).forEach(([key, getter]) => {
+        curDerive = { key, getter };
+        const val = getter();
+        curDerive = null;
 
-      stateTarget[key] = val;
-      const effectData = effectMap[`state.${key}`];
-      if (effectData) effectData.params = [val];
+        stateTarget[key] = val;
+        const effectData = effectMap[`state.${key}`];
+        if (effectData) effectData.params = [val];
+      });
+
+      propsHandler.get = defaultGetter;
+      stateHandler.get = defaultGetter;
+      return res;
     });
 
-    propsHandler.get = defaultGetter;
-    stateHandler.get = defaultGetter;
-    return res;
-  });
-
-  return ins(props);
+    return ins(props);
+  };
 }
-};
-
-
-
